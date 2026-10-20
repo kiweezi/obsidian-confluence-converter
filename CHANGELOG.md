@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Links to headings pasted as plain text** ([#6](https://github.com/addozhang/obsidian-confluence-converter/issues/6))
   - The Confluence Cloud editor discards fragment-only links (`href="#heading"`) when HTML is pasted, so table-of-contents style links lost their link.
-  - Links to headings in the same note now resolve to Confluence's heading anchor format (`#Bootstrapping-(cold-start)`). Wikilinks (`[[#Heading|alias]]`, `[[#Parent#Heading]]`), URL-encoded links (`#My%20Heading`), GitHub-style slugs (`#my-heading`) and Confluence-style anchors are all supported. Heading wikilinks were previously emitted as raw `[[...]]` text.
+  - Links to headings in the same note now resolve to Confluence's heading anchor format (`#Bootstrapping-(cold-start)`). Wikilinks (`[[#Heading|alias]]`, `[[#Parent#Heading]]`), URL-encoded links (`#My%20Heading`), GitHub-style slugs (`#my-heading`), Confluence-style anchors and links through the note's own file (`[text](<./My Note.md#Heading>)`, `[[My Note#Heading]]`) are all supported. Heading wikilinks were previously emitted as raw `[[...]]` text.
   - Adding a `confluence-page-url` property to the note makes heading links absolute (`<page url>#Heading`) so they survive pasting into Confluence. A notice explains this when heading links are copied without the property.
   - Note frontmatter is no longer included in the converted output.
 - Text around `![[image]]` embeds is now HTML-escaped in Storage Format output.

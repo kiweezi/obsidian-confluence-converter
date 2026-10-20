@@ -64,7 +64,11 @@ Links to headings in the same note are converted to Confluence heading anchors. 
 [Bootstrapping (cold start)](#Bootstrapping%20(cold%20start))
 [Bootstrapping (cold start)](#bootstrapping-cold-start)
 [Bootstrapping (cold start)](#Bootstrapping-(cold-start))
+[Bootstrapping (cold start)](<./My Note.md#Bootstrapping (cold start)>)
+[[My Note#Bootstrapping (cold start)]]
 ```
+
+Links that go through the note's own file name (the last two forms) are only converted when the name matches the note being converted. Links to headings in other notes are left unchanged.
 
 The Confluence editor drops same-page links like `#Bootstrapping-(cold-start)` when you paste. To keep them as links, create the Confluence page first, then add its URL to the note's properties:
 

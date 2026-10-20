@@ -108,6 +108,51 @@ describe("Heading links in Storage Format", () => {
 	});
 });
 
+describe("Heading links via the note file", () => {
+	const NOTE_NAME = "ArgoCD (DRP)";
+	const resolver = () => new HeadingAnchorResolver(NOTE, undefined, NOTE_NAME);
+	const render = (markdown: string) => marked.parse(markdown, {
+		renderer: new ConfluenceStorageRenderer({ headingAnchors: resolver() }),
+		async: false,
+	}) as string;
+
+	test.each([
+		"./ArgoCD (DRP).md#Bootstrapping (cold start)",
+		"ArgoCD%20(DRP).md#Bootstrapping%20(cold%20start)",
+		"folder/ArgoCD (DRP)#bootstrapping-cold-start",
+		"argocd (drp).md#Bootstrapping-(cold-start)",
+	])("should resolve %s to the heading", (href) => {
+		expect(resolver().resolveHref(href)).toBe("#Bootstrapping-(cold-start)");
+	});
+
+	test.each([
+		"./Other note.md#Bootstrapping (cold start)",
+		"./ArgoCD (DRP).md",
+		"https://example.com/ArgoCD (DRP).md#Bootstrapping",
+	])("should not resolve %s", (href) => {
+		expect(resolver().resolveHref(href)).toBeUndefined();
+	});
+
+	test("should not resolve file links when the note name is unknown", () => {
+		expect(new HeadingAnchorResolver(NOTE).resolveHref("./ArgoCD (DRP).md#Scenarios")).toBeUndefined();
+	});
+
+	test("should convert angle-bracket markdown links to the current note", () => {
+		expect(render("[Bootstrapping (cold start)](<./ArgoCD (DRP).md#Bootstrapping (cold start)>)"))
+			.toBe('<p><a href="#Bootstrapping-(cold-start)">Bootstrapping (cold start)</a></p>');
+	});
+
+	test("should convert wikilinks that name the current note", () => {
+		expect(render("[[ArgoCD (DRP)#Scenarios#Bootstrapping (cold start)|cold start]]"))
+			.toBe('<p><a href="#Bootstrapping-(cold-start)">cold start</a></p>');
+	});
+
+	test("should leave links to headings in other notes unchanged", () => {
+		expect(render("[x](<./Other.md#Scenarios>) [[Other#Scenarios]]"))
+			.toBe('<p><a href="./Other.md#Scenarios">x</a> [[Other#Scenarios]]</p>');
+	});
+});
+
 describe("Heading links in Wiki Markup", () => {
 	const render = (markdown: string, pageUrl?: string) => marked.parse(markdown, {
 		renderer: new AtlassianWikiMarkupRenderer({ headingAnchors: new HeadingAnchorResolver(NOTE, pageUrl) }),
@@ -116,6 +161,10 @@ describe("Heading links in Wiki Markup", () => {
 
 	test("should convert markdown heading links", () => {
 		expect(render("[cold start](#bootstrapping-cold-start)").trim()).toBe("[cold start|#Bootstrapping-(cold-start)]");
+	});
+
+	test("should leave wikilinks to other notes unchanged", () => {
+		expect(render("[[Other#Scenarios]]").trim()).toBe("[[Other#Scenarios]]");
 	});
 
 	test("should convert heading wikilinks", () => {

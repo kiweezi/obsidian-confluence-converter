@@ -61,7 +61,7 @@ export default class ConfluenceConverter extends Plugin {
 		let converted: string;
 
 		// Headings are looked up in the whole note so that links in a selection still resolve
-		const headingAnchors = new HeadingAnchorResolver(note, this.getConfluencePageUrl(file));
+		const headingAnchors = new HeadingAnchorResolver(note, this.getConfluencePageUrl(file), file?.basename);
 
 		if (this.settings.outputFormat === "storage") {
 			// Confluence Storage Format (XHTML)

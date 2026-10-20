@@ -70,11 +70,14 @@ export class ConfluenceStorageRenderer extends Renderer {
 		let result = "";
 		let lastIndex = 0;
 		for (const match of token.text.matchAll(obsidianSyntax)) {
-			const [syntax, filename, headingTarget, alias] = match;
+			const [syntax, filename, note, headingTarget, alias] = match;
 			result += escapeText(token.text.slice(lastIndex, match.index));
 			lastIndex = match.index + syntax.length;
 
-			if (filename !== undefined) {
+			if (filename === undefined && !this.headingAnchors.isCurrentNote(note)) {
+				// Wikilink to a heading in another note: leave as it was
+				result += escapeText(syntax);
+			} else if (filename !== undefined) {
 				// Apply default width if configured (same as image() method)
 				const width = this.rendererOptions?.image?.defaultWidth;
 				const widthAttr = width ? ` ac:width="${width}"` : "";
@@ -103,7 +106,7 @@ export class ConfluenceStorageRenderer extends Renderer {
 
 	public link({href, title, text}: Tokens.Link): string {
 		const titleAttr = title ? ` title="${this.escapeHtml(title)}"` : "";
-		const resolvedHref = href.startsWith("#") ? this.headingAnchors.resolve(href) : href;
+		const resolvedHref = this.headingAnchors.resolveHref(href) ?? href;
 		return `<a href="${this.escapeHtml(resolvedHref)}"${titleAttr}>${text}</a>`;
 	}
 

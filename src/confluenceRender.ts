@@ -182,8 +182,11 @@ export class AtlassianWikiMarkupRenderer extends Renderer {
 				return `!${filename}|width=${width}!`;
 			}
 			return `!${filename}!`;
-		}).replace(HEADING_WIKILINK_REGEXP, (match, headingTarget: string, alias?: string) => {
-			// Match Obsidian heading links: [[#Heading]] or [[#Parent#Heading|alias]]
+		}).replace(HEADING_WIKILINK_REGEXP, (match, note: string, headingTarget: string, alias?: string) => {
+			// Match Obsidian heading links: [[#Heading]], [[#Parent#Heading|alias]] or [[Note#Heading]]
+			if (!this.headingAnchors.isCurrentNote(note)) {
+				return match;
+			}
 			const linkText = alias?.trim() || HeadingAnchorResolver.wikilinkDisplayText(headingTarget);
 			return `[${linkText}|${this.headingAnchors.resolve(headingTarget)}]`;
 		});
@@ -204,7 +207,7 @@ export class AtlassianWikiMarkupRenderer extends Renderer {
 
 	public link({href, title, text}: Tokens.Link): string {
 		const linkAlias = text === "" ? title : text;
-		const resolvedHref = href.startsWith("#") ? this.headingAnchors.resolve(href) : href;
+		const resolvedHref = this.headingAnchors.resolveHref(href) ?? href;
 		return linkAlias ? `[${linkAlias}|${resolvedHref}]` : `[${resolvedHref}]`;
 	}
 

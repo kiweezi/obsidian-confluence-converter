@@ -7,6 +7,7 @@
  *   - URL-encoded links:      [text](#My%20Heading)
  *   - GitHub-style slugs:     [text](#my-heading)
  *   - Confluence-style ids:   [text](#My-Heading)
+ *   - Links via the note file: [text](<./My Note.md#My Heading>), [[My Note#My Heading]]
  *
  * Confluence Cloud identifies a heading by its text with whitespace replaced by
  * hyphens (case and punctuation preserved), e.g. "Bootstrapping (cold start)"
@@ -20,9 +21,10 @@ import {marked, Token, Tokens} from "marked";
 
 export const PAGE_URL_FRONTMATTER_KEY = "confluence-page-url";
 
-// Matches wikilinks to headings in the same note, e.g. [[#Heading]] or [[#Parent#Heading|alias]].
+// Matches wikilinks to headings, e.g. [[#Heading]], [[#Parent#Heading|alias]] or [[Note#Heading]].
+// Captures the note (empty for the current note), the heading path and the alias.
 // Block references ([[#^block-id]]) are not headings and are left alone.
-export const HEADING_WIKILINK_REGEXP = /(?<!!)\[\[#(?!\^)([^\]|]+)(?:\|([^\]]*))?\]\]/g;
+export const HEADING_WIKILINK_REGEXP = /(?<!!)\[\[([^\]|#]*)#(?!\^)([^\]|]+)(?:\|([^\]]*))?\]\]/g;
 
 const FRONTMATTER_REGEXP = /^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/;
 
@@ -78,15 +80,18 @@ function safeDecode(text: string): string {
 export class HeadingAnchorResolver {
 	private readonly headings: string[] = [];
 	private readonly pageUrl: string;
+	private readonly noteName: string;
 	private anchorLinkCount = 0;
 
 	/**
 	 * @param markdown the full note, used to find the headings that links can point to
 	 * @param pageUrl  URL of the Confluence page the content will be pasted into, if known
+	 * @param noteName file name of the note without extension, used to recognise links to it
 	 */
-	public constructor(markdown = "", pageUrl?: string) {
+	public constructor(markdown = "", pageUrl?: string, noteName?: string) {
 		collectHeadings(marked.lexer(stripFrontmatter(markdown)), this.headings);
 		this.pageUrl = (pageUrl ?? "").trim().replace(/#.*$/, "");
+		this.noteName = (noteName ?? "").trim().toLowerCase();
 	}
 
 	/** Number of heading links resolved so far. */
@@ -106,6 +111,31 @@ export class HeadingAnchorResolver {
 		this.anchorLinkCount++;
 		const anchor = toConfluenceAnchor(this.findHeading(fragment));
 		return `${this.pageUrl}#${anchor}`;
+	}
+
+	/**
+	 * Whether a link path ("", "./My Note.md", "folder/My%20Note", "My Note") points at the
+	 * note being converted. An empty path always refers to the current note.
+	 */
+	public isCurrentNote(path: string): boolean {
+		const trimmed = path.trim();
+		if (trimmed === "") {
+			return true;
+		}
+		const fileName = safeDecode(trimmed).split(/[/\\]/).pop() ?? "";
+		return this.noteName !== "" && fileName.replace(/\.md$/i, "").trim().toLowerCase() === this.noteName;
+	}
+
+	/**
+	 * Resolves the href of a markdown link if it points at a heading in the current note
+	 * ("#Heading" or "./My Note.md#Heading"); returns undefined for any other link.
+	 */
+	public resolveHref(href: string): string | undefined {
+		const hashIndex = href.indexOf("#");
+		if (hashIndex < 0 || /^[a-z][a-z0-9+.-]*:/i.test(href) || !this.isCurrentNote(href.slice(0, hashIndex))) {
+			return undefined;
+		}
+		return this.resolve(href.slice(hashIndex + 1));
 	}
 
 	/** Text Obsidian displays for a heading wikilink without an alias. */
